@@ -2,7 +2,8 @@ import subprocess
 
 script_dir="/user/seojikim/work/scripts"
 default_server='fdn13'
-COMPLETE_LOG_NOT_FOUND='[ERR] Complete Log is not found! Seemd RTLSIM done abnormally.'
+ERR_LOG_COMPLETE_LOG_NOT_FOUND='[ERR] Complete Log is not found! Seemd RTLSIM done abnormally.'
+FAIL_LOG_RTLSIM_RESULT='[FAIL] RTLSIM sim.log is not same as original log. Failed RTLSIM test!'
 
 class RTLlauncher:
         def __init__(self):
@@ -13,6 +14,7 @@ class RTLlauncher:
                 ###########################################################################################
                 # Check FDN memory of server 
                 ###########################################################################################
+
                 server_list=[line.strip() for line in open(script_dir+'/server.lst')]
                 for server in server_list:
                     cmd='ssh ' + server + ' free -g | grep Mem | tr -d \"Mem:\"'
@@ -66,12 +68,54 @@ class RTLlauncher:
                 p.communicate()
 
                 if p.returncode is not 0:
-                    print(COMPLETE_LOG_NOT_FOUND)
-                    exit() 
+                    print(ERR_LOG_COMPLETE_LOG_NOT_FOUND)
+                    exit(1)
                 pass
 
-        def check_rtlsim_result(self):
-                pass
+        def log_preprocess(self, log):
+
+                ###########################################################################################
+                # Remove unnececerry log
+                ###########################################################################################
+
+                logs=list()
+
+                for line in log.split('\n'):
+                    if len(line.split())<5:
+                        continue
+                    elif line.split()[4].startswith('(') and line.split()[4].endswith('):'):
+                        processed_line=' '.join(line.split()[1:-1])
+                        #print(processed_line)
+                        logs.append(processed_line)
+
+                return logs
+
+        def check_rtlsim_result(self, log_orig, log_new):
+
+                ###########################################################################################
+                # Compare original and new log
+                # log_orig: original rtlsim log data
+                # log_new: new rtlsim log data
+                ###########################################################################################
+
+                processed_orig=self.log_preprocess(log_orig)
+                processed_new=self.log_preprocess(log_new)
+                tc_res=True
+
+                for line_orig, line_new in zip(processed_orig, processed_new):
+                    res=(line_orig==line_new) 
+                    if res is not True:
+                        tc_res=False
+                
+                    print('-'*100)
+                    print('[ Original log ] : ' + line_orig)
+                    print('[    New log   ] : ' + line_new)
+                    print('[  Log Compare ] : ' + str(res))
+            
+                if tc_res is not True:
+                    print(FAIL_LOG_RTLSIM_RESULT)
+                    exit(1)
+
 
 def run_command(cmd):
         popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, executable='/bin/tcsh')

@@ -1,5 +1,4 @@
 from rtllauncher import *
-import os
 import argparse
 
 def main():
@@ -23,12 +22,16 @@ def main():
         rtl_dir=args.rtl_dir
 
         ###########################################################################################
-        # Run RTLSIM
+        # Check RTLSIM result
         ###########################################################################################
 
-        server=launcher.select_server()
-        launcher.run_rtlsim(server, rtl_dir, rtl_test)
-        launcher.check_rtlsim_done(rtl_dir, rtl_test)
+        log_orig=open(rtl_dir + '/' + rtl_test + '/orig_sim.log').read()
+        log_new=open(rtl_dir + '/' + rtl_test + '/sim.log').read()
+        launcher.check_rtlsim_result(log_orig, log_new);
 
 if __name__ == "__main__":
         main()
+    pass
+
+if __name__ == "__main__":
+    main()
